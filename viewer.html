@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>JSON Viewer</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 1rem; }
+    pre { background: #f0f0f0; padding: 1rem; overflow-x: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>JSON Viewer</h2>
+  <div id="file-name"></div>
+  <pre id="output">Loading...</pre>
+
+  <script>
+    // Parse ?file=example.json from the URL
+    const params = new URLSearchParams(window.location.search);
+    const filename = params.get('file');
+
+    document.getElementById('file-name').textContent = filename ? `File: ${filename}` : 'No file specified.';
+
+    if (filename) {
+      const url = `https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/json/${filename}`;
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          document.getElementById('output').textContent = 'Error: ' + err.message;
+        });
+    } else {
+      document.getElementById('output').textContent = 'Please specify a JSON file using ?file=FILENAME.json';
+    }
+  </script>
+</body>
+</html>
