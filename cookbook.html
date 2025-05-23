@@ -98,11 +98,15 @@
 
 
         function loadRecipe(filePath) {
-            const viewerURL = `https://dylansellers.github.io/Cookin/viewer.html?v=3&path=${encodeURIComponent(filePath)}`;
+            const encodedPath = encodeURIComponent(filePath);
+            const viewerURL = `https://dylansellers.github.io/Cookin/viewer.html?v=3&path=${encodedPath}`;
+            console.log("Loading iframe:", viewerURL);  // 🔍 Log to debug
+
             document.getElementById('content').innerHTML = `
                 <iframe src="${viewerURL}" width="100%" height="800px" style="border: none;"></iframe>
             `;
         }
+
 
 
         function toggleVisibility(elementId) {
