@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Collection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+
+        #sidebar {
+            width: 25%;
+            max-width: 300px;
+            background-color: #f8f8f8;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        #content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        .book, .chapter {
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .chapters, .recipes {
+            margin-left: 20px;
+            display: none;
+        }
+
+        .recipe {
+            margin-left: 20px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        async function fetchChapters(bookFolder, bookId) {
+            const apiUrl = `https://api.github.com/repos/MelissaSellers/Test/contents/${bookFolder}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch chapters: ${response.statusText}`);
+                }
+                const folders = await response.json();
+                const chaptersElement = document.getElementById(bookId);
+                chaptersElement.innerHTML = '';
+
+                folders.forEach(folder => {
+                    if (folder.type === 'dir') {
+                        const chapterId = `${bookId}-${folder.name.replace(/\s+/g, '-')}`;
+                        chaptersElement.innerHTML += `
+                            <div class="chapter" onclick="toggleVisibility('${chapterId}')">${folder.name}</div>
+                            <div id="${chapterId}" class="recipes"></div>
+                        `;
+                        fetchRecipes(folder.path, chapterId);
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                document.getElementById(bookId).innerHTML = `<p>Error loading chapters</p>`;
+            }
+        }
+
+        async function fetchRecipes(chapterPath, chapterId) {
+            const apiUrl = `https://api.github.com/repos/MelissaSellers/Test/contents/${chapterPath}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch recipes: ${response.statusText}`);
+                }
+                const files = await response.json();
+                const recipesElement = document.getElementById(chapterId);
+                recipesElement.innerHTML = '';
+
+                files.forEach(file => {
+                    if (file.type === 'file' && file.name.endsWith('.json')) {
+                        // Pass only the filename to viewer.html; it will fetch from Dylan's repo
+                        recipesElement.innerHTML += `
+                            <div class="recipe">
+                                <a href="#" onclick="loadRecipe('${file.name}')">${file.name.replace('.json', '')}</a>
+                            </div>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                document.getElementById(chapterId).innerHTML = `<p>Error loading recipes</p>`;
+            }
+        }
+
+        function loadRecipe(filename) {
+            const viewerURL = `https://dylansellers.github.io/Cookin/viewer.html?v=3&file=${filename}`;
+            document.getElementById('content').innerHTML = `
+                <iframe src="${viewerURL}" width="100%" height="800px" style="border: none;"></iframe>
+            `;
+        }
+
+        function toggleVisibility(elementId) {
+            const element = document.getElementById(elementId);
+            const siblingElements = Array.from(element.parentElement.children).filter(el => el !== element);
+
+            siblingElements.forEach(sibling => {
+                if (sibling.classList.contains('chapters') || sibling.classList.contains('recipes')) {
+                    sibling.style.display = 'none';
+                }
+            });
+
+            element.style.display = element.style.display === 'block' ? 'none' : 'block';
+        }
+
+        window.onload = () => {
+            fetchChapters("2021-02-22_Ken's Recipes", 'book1-chapters');
+        };
+    </script>
+</head>
+<body>
+    <div id="sidebar">
+        <div class="book" onclick="toggleVisibility('book1-chapters')">Ken’s Recipes</div>
+        <div id="book1-chapters" class="chapters">
+            <p>Loading chapters...</p>
+        </div>
+        <div class="book" onclick="toggleVisibility('book2-chapters')">Sellers Family Cookbook</div>
+        <div id="book2-chapters" class="chapters">
+            <p>Chapters not yet implemented.</p>
+        </div>
+    </div>
+    <div id="content">
+        <h1>Welcome to the Recipe Collection</h1>
+        <p>Select a book, chapter, and recipe to view details here.</p>
+    </div>
+</body>
+</html>
