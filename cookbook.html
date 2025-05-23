@@ -82,10 +82,10 @@
 
                 files.forEach(file => {
                     if (file.type === 'file' && file.name.endsWith('.json')) {
-                        // Pass only the filename to viewer.html; it will fetch from Dylan's repo
+                        // ✅ Pass full file.path to loadRecipe()
                         recipesElement.innerHTML += `
                             <div class="recipe">
-                                <a href="#" onclick="loadRecipe('${file.name}')">${file.name.replace('.json', '')}</a>
+                                <a href="#" onclick="loadRecipe('${file.path}')">${file.name.replace('.json', '')}</a>
                             </div>
                         `;
                     }
@@ -96,12 +96,14 @@
             }
         }
 
-        function loadRecipe(filename) {
-            const viewerURL = `https://dylansellers.github.io/Cookin/viewer.html?v=3&file=${filename}`;
+
+        function loadRecipe(filePath) {
+            const viewerURL = `https://dylansellers.github.io/Cookin/viewer.html?v=3&path=${encodeURIComponent(filePath)}`;
             document.getElementById('content').innerHTML = `
                 <iframe src="${viewerURL}" width="100%" height="800px" style="border: none;"></iframe>
             `;
         }
+
 
         function toggleVisibility(elementId) {
             const element = document.getElementById(elementId);
