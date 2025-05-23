@@ -21,7 +21,7 @@
     document.getElementById('file-name').textContent = filename ? `File: ${filename}` : 'No file specified.';
 
     if (filename) {
-      const url = `https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/json/${filename}`;
+      const url = `https://raw.githubusercontent.com/DylanSellers/Cookin/main/json/${filename}`;
 
       fetch(url)
         .then(response => {
