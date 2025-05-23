@@ -36,11 +36,18 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const path = params.get('path');
+
+    if (!path) {
+      document.getElementById("output").textContent = "Error: No recipe path specified.";
+      throw new Error("Missing ?path= parameter in URL");
+    }
+
     const url = `https://raw.githubusercontent.com/MelissaSellers/Test/main/${path}`;
+    console.log("Fetching recipe from:", url);
 
     fetch(url)
       .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch recipe");
+        if (!res.ok) throw new Error(`Failed to fetch recipe: ${res.status} ${res.statusText}`);
         return res.json();
       })
       .then(data => {
@@ -67,5 +74,34 @@
         }
 
         const desc = document.createElement("p");
-        if
+        if (recipeDescription) {
+          desc.innerHTML = recipeDescription.replace(/\n/g, "<br>");
+          desc.className = "italic";
+        }
 
+        const ingredients = document.createElement("p");
+        if (ingredientList) {
+          ingredients.innerHTML = ingredientList.replace(/\n/g, "<br>");
+          ingredients.className = "bold";
+        }
+
+        const instructions = document.createElement("p");
+        if (recipeText) {
+          instructions.innerHTML = recipeText.replace(/\n/g, "<br>");
+        }
+
+        output.appendChild(h1);
+        output.appendChild(hr);
+        if (servingSize) output.appendChild(serving);
+        if (recipeDescription) output.appendChild(desc);
+        if (ingredientList) output.appendChild(ingredients);
+        if (recipeText) output.appendChild(instructions);
+      })
+      .catch(err => {
+        const output = document.getElementById("output");
+        output.textContent = "Error: " + err.message;
+        console.error("Fetch error:", err);
+      });
+  </script>
+</body>
+</html>
