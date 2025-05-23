@@ -85,7 +85,7 @@
                         // ✅ Pass full file.path to loadRecipe()
                         recipesElement.innerHTML += `
                             <div class="recipe">
-                                <a href="#" onclick="loadRecipe('${file.path}')">${file.name.replace('.json', '')}</a>
+                                <a href="#" onclick="loadRecipe('${file.path.replace(/'/g, "\\'")}')">${file.name.replace('.json', '')}</a>
                             </div>
                         `;
                     }
