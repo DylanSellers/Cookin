@@ -35,8 +35,8 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const filename = params.get('file');
-    const url = `https://raw.githubusercontent.com/DylanSellers/Cookin/main/json/${filename}`;
+    const path = params.get('path');
+    const url = `https://raw.githubusercontent.com/MelissaSellers/Test/main/${path}`;
 
     fetch(url)
       .then(res => {
@@ -67,33 +67,5 @@
         }
 
         const desc = document.createElement("p");
-        if (recipeDescription) {
-          desc.innerHTML = recipeDescription.replace(/\n/g, "<br>");
-          desc.className = "italic";
-        }
-
-        const ingredients = document.createElement("p");
-        if (ingredientList) {
-          ingredients.innerHTML = ingredientList.replace(/\n/g, "<br>");
-          ingredients.className = "bold";
-        }
-
-        const instructions = document.createElement("p");
-        if (recipeText) {
-          instructions.innerHTML = recipeText.replace(/\n/g, "<br>");
-        }
-
-        output.appendChild(h1);
-        output.appendChild(hr);
-        if (servingSize) output.appendChild(serving);
-        if (recipeDescription) output.appendChild(desc);
-        if (ingredientList) output.appendChild(ingredients);
-        if (recipeText) output.appendChild(instructions);
-      })
-      .catch(err => {
-        document.getElementById("output").textContent = "Error: " + err.message;
-      });
-  </script>
-</body>
-</html>
+        if
 
