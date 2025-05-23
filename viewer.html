@@ -1,42 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>JSON Viewer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recipe Viewer</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 1rem; }
-    pre { background: #f0f0f0; padding: 1rem; overflow-x: auto; white-space: pre-wrap; }
+    body {
+      font-family: "Times New Roman", Arial, sans-serif;
+      margin: 20px;
+      padding: 20px;
+      max-width: 800px;
+    }
+    h1 {
+      font-size: 26px;
+      margin-bottom: 5px;
+    }
+    p {
+      font-size: 16px;
+    }
+    .italic {
+      font-style: italic;
+    }
+    .bold {
+      font-weight: bold;
+      margin: 15px 0;
+    }
+    .right-align {
+      text-align: right;
+    }
   </style>
 </head>
 <body>
-  <h2>JSON Viewer</h2>
-  <div id="file-name"></div>
-  <pre id="output">Loading...</pre>
+  <div id="output">Loading recipe...</div>
 
   <script>
-    // Parse ?file=example.json from the URL
     const params = new URLSearchParams(window.location.search);
     const filename = params.get('file');
+    const url = `https://raw.githubusercontent.com/DylanSellers/Cookin/main/json/${filename}`;
 
-    document.getElementById('file-name').textContent = filename ? `File: ${filename}` : 'No file specified.';
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch recipe");
+        return res.json();
+      })
+      .then(data => {
+        const {
+          recipeName,
+          recipeDescription,
+          servingSize,
+          ingredientList,
+          recipeText
+        } = data;
 
-    if (filename) {
-      const url = `https://raw.githubusercontent.com/DylanSellers/Cookin/main/json/${filename}`;
+        const output = document.getElementById("output");
+        output.innerHTML = "";
 
-      fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          return response.json();
-        })
-        .then(data => {
-          document.getElementById('output').textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(err => {
-          document.getElementById('output').textContent = 'Error: ' + err.message;
-        });
-    } else {
-      document.getElementById('output').textContent = 'Please specify a JSON file using ?file=FILENAME.json';
-    }
+        const h1 = document.createElement("h1");
+        h1.textContent = recipeName || "Untitled Recipe";
+
+        const hr = document.createElement("hr");
+
+        const serving = document.createElement("p");
+        if (servingSize) {
+          serving.textContent = `Serves: ${servingSize}`;
+          serving.className = "right-align";
+        }
+
+        const desc = document.createElement("p");
+        if (recipeDescription) {
+          desc.innerHTML = recipeDescription.replace(/\n/g, "<br>");
+          desc.className = "italic";
+        }
+
+        const ingredients = document.createElement("p");
+        if (ingredientList) {
+          ingredients.innerHTML = ingredientList.replace(/\n/g, "<br>");
+          ingredients.className = "bold";
+        }
+
+        const instructions = document.createElement("p");
+        if (recipeText) {
+          instructions.innerHTML = recipeText.replace(/\n/g, "<br>");
+        }
+
+        output.appendChild(h1);
+        output.appendChild(hr);
+        if (servingSize) output.appendChild(serving);
+        if (recipeDescription) output.appendChild(desc);
+        if (ingredientList) output.appendChild(ingredients);
+        if (recipeText) output.appendChild(instructions);
+      })
+      .catch(err => {
+        document.getElementById("output").textContent = "Error: " + err.message;
+      });
   </script>
 </body>
 </html>
+
