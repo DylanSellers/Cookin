@@ -10,8 +10,15 @@
       display: flex;
       margin: 0;
       padding: 0;
+      height: 100vh;
+      overflow: hidden;
     }
+    #sidebar, #content {
+      box-sizing: border-box;
+    }
+
     #sidebar {
+      flex-shrink: 0;
       width: 25%;
       max-width: 300px;
       background-color: #f8f8f8;
@@ -21,7 +28,13 @@
     }
     #content {
       flex-grow: 1;
+      min-width: 0;
+      max-width: 100%;
       padding: 20px;
+      overflow-y: auto;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      box-sizing: border-box;
     }
     .book, .chapter {
       margin: 10px 0;
@@ -36,11 +49,39 @@
       cursor: pointer;
     }
     h1 { font-size: 26px; margin-bottom: 5px; }
-    p { font-size: 16px; }
+    p { font-size: 16px; text-align: justify; }
     .italic { font-style: italic; }
     .bold { font-weight: bold; margin: 15px 0; }
     .right-align { text-align: right; }
-  </style>
+    .download-btn {
+  display: block;
+  margin-left: auto;
+  margin-right: 0;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+    .print-wrapper {
+  width: 595pt;
+  display: flex;
+  justify-content: center;
+}
+
+#printArea {
+      width: 515pt;
+      margin: 0 auto;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      font-size:  12pt;
+    }
+    @media print {
+    .download-btn {
+      display: none !important;
+    }
+  }
+</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div id="sidebar">
@@ -55,13 +96,23 @@
   </div>
 
   <script>
+    let currentRecipeName = "recipe";
+
     async function fetchChapters(bookFolder, bookId) {
       const apiUrl = `https://api.github.com/repos/MelissaSellers/Test/contents/${bookFolder}`;
+      const chaptersElement = document.getElementById(bookId);
       try {
         const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error(`Failed to fetch chapters: ${response.statusText}`);
+        if (!response.ok) {
+          let errorText;
+          try {
+            errorText = await response.text();
+          } catch (e) {
+            errorText = 'Unable to read error message.';
+          }
+          throw new Error(`Failed to fetch chapters: ${response.status} ${response.statusText} - ${errorText}`);
+        }
         const folders = await response.json();
-        const chaptersElement = document.getElementById(bookId);
         chaptersElement.innerHTML = '';
 
         folders.forEach(folder => {
@@ -75,8 +126,12 @@
           }
         });
       } catch (error) {
-        console.error(error);
-        document.getElementById(bookId).innerHTML = `<p>Error loading chapters</p>`;
+        console.error('Error loading chapters:', error);
+        let message = `<p><strong>Error loading chapters.</strong></p>`;
+        if (error && error.message) {
+          message += `<p style='color: gray;'>Details: ${error.message}</p>`;
+        }
+        chaptersElement.innerHTML = message;
       }
     }
 
@@ -93,7 +148,9 @@
           if (file.type === 'file' && file.name.endsWith('.json')) {
             recipesElement.innerHTML += `
               <div class="recipe">
-                <a href="#" onclick="loadRecipe('${file.path.replace(/'/g, "\\'")}')">${file.name.replace('.json', '')}</a>
+                <a href="#" onclick="event.preventDefault(); loadRecipe('${file.path.replace(/'/g, "\\'")}')">
+                  ${file.name.replace('.json', '')}
+                </a>
               </div>
             `;
           }
@@ -120,16 +177,20 @@
     }
 
     function renderRecipe(data) {
-      const {
-        recipeName,
-        recipeDescription,
-        servingSize,
-        ingredientList,
-        recipeText
-      } = data;
-
+      const { recipeName, recipeDescription, servingSize, ingredientList, recipeText } = data;
+      currentRecipeName = recipeName || "recipe";
       const output = document.getElementById("content");
       output.innerHTML = '';
+
+      const downloadBtn = document.createElement("button");
+      downloadBtn.textContent = "Download PDF";
+      downloadBtn.className = "download-btn";
+      downloadBtn.onclick = printRecipe;
+
+      const container = document.createElement("div");
+      container.id = "printArea";
+      container.className = "print-section";
+      container.style.fontSize = '12pt';
 
       const h1 = document.createElement("h1");
       h1.textContent = recipeName || "Untitled Recipe";
@@ -148,23 +209,74 @@
         desc.className = "italic";
       }
 
+      const ingredientsHeader = document.createElement("p");
+      ingredientsHeader.textContent = "Ingredients:";
+      ingredientsHeader.className = "bold";
+
       const ingredients = document.createElement("p");
       if (ingredientList) {
-        ingredients.innerHTML = ingredientList.replace(/\n/g, "<br>");
-        ingredients.className = "bold";
+        const indented = ingredientList.split('\n').map(line => `&emsp;${line}`).join('<br>');
+        ingredients.innerHTML = indented;
       }
+
+      const directionsHeader = document.createElement("p");
+      directionsHeader.textContent = "Directions:";
+      directionsHeader.className = "bold";
 
       const instructions = document.createElement("p");
       if (recipeText) {
         instructions.innerHTML = recipeText.replace(/\n/g, "<br>");
       }
 
-      output.appendChild(h1);
-      output.appendChild(hr);
-      if (servingSize) output.appendChild(serving);
-      if (recipeDescription) output.appendChild(desc);
-      if (ingredientList) output.appendChild(ingredients);
-      if (recipeText) output.appendChild(instructions);
+      container.appendChild(h1);
+      container.appendChild(hr);
+      if (servingSize) container.appendChild(serving);
+      if (recipeDescription) container.appendChild(desc);
+      if (ingredientList) {
+        container.appendChild(ingredientsHeader);
+        container.appendChild(ingredients);
+      }
+      if (recipeText) {
+        container.appendChild(directionsHeader);
+        container.appendChild(instructions);
+      }
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "print-wrapper";
+      wrapper.appendChild(container);
+
+      output.appendChild(downloadBtn);
+      output.appendChild(wrapper);
+    }
+
+    async function printRecipe(e) {
+      e.preventDefault();
+      const { jsPDF } = window.jspdf;
+      const element = document.getElementById("printArea");
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+
+      await pdf.html(element, {
+        callback: function (doc) {
+          const blob = doc.output("blob");
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${currentRecipeName.replace(/\s+/g, '_')}.pdf`;
+          a.style.display = "none";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        },
+        x: 40,
+        y: 40,
+        width: 515,
+        windowWidth: 700,
+        html2canvas: {
+          scale: 0.6,
+          useCORS: true
+        }
+      });
     }
 
     function toggleVisibility(elementId) {
@@ -186,3 +298,4 @@
   </script>
 </body>
 </html>
+
