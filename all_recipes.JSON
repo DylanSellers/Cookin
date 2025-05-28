@@ -1,0 +1,10 @@
+{
+    "type": "recipe",
+    "recipeName": "Test Recipe 1",
+    "bookTitle": "Dylan's Test Book",
+    "chapterName": "Chapter 1",
+    "recipeDescription": "A test recipe. The first I made in fact.",
+    "servingSize": "2",
+    "ingredientList": "a bucket of salt\nexhaustion of a programmer\nchatGPT",
+    "recipeText": "Mix well and shake in a martini cup"
+}
