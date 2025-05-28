@@ -1,10 +1,12 @@
-{
+[
+  {
     "type": "recipe",
-    "recipeName": "Test Recipe 1",
-    "bookTitle": "Dylan's Test Book",
-    "chapterName": "Chapter 1",
-    "recipeDescription": "A test recipe. The first I made in fact.",
-    "servingSize": "2",
-    "ingredientList": "a bucket of salt\nexhaustion of a programmer\nchatGPT",
-    "recipeText": "Mix well and shake in a martini cup"
-}
+    "recipeName": "French Toast",
+    "bookTitle": "Ken's Recipes",
+    "chapterName": "Breakfast Foods",
+    "recipeDescription": "Classic French toast made easy.",
+    "servingSize": 2,
+    "ingredientList": "2 eggs\n1/2 cup milk\n4 slices of bread",
+    "recipeText": "Whisk eggs and milk. Dip bread. Cook on skillet until golden."
+  },
+]
