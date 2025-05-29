@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Generator</title>
+    <style>
+        body {
+            font-family: Times New Roman, Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea, input, select {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        textarea::placeholder,
+        input::placeholder {
+            font-family: Times New Roman, Arial, sans-serif;
+            font-size: 16px;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #BC2111;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #9E2316;
+        }
+
+        h1 {
+            font-size: 28px;
+        }
+
+        h2 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+        }
+
+        p {
+            font-size: 16px;
+        }
+
+        .warning {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body onload="loadInitialMemory()">
+    <div class="container">
+        <h1>Recipe Generator</h1>
+        <div>
+            <h2>Book Title</h2>
+            <select id="book-title" onchange="populateChapterOptions()"></select>
+            <input type="text" id="new-book-title" placeholder="Or enter a new book title..." oninput="clearDropdown('book-title')">
+        </div>
+        <div>
+            <h2>Chapter Name</h2>
+            <select id="chapter-name"></select>
+            <input type="text" id="new-chapter-name" placeholder="Or enter a new chapter name..." oninput="clearDropdown('chapter-name')">
+        </div>
+        <div>
+            <h2>Recipe Name</h2>
+            <input type="text" id="recipe-name" placeholder="Enter the recipe name here…">
+        </div>
+        <div>
+            <h2>Description</h2>
+            <textarea id="recipe-description" rows="2" placeholder="Enter the recipe description here…"></textarea>
+        </div>
+        <div>
+            <h2>Serving Size</h2>
+            <input type="number" id="serving-size" placeholder="Number of servings">
+        </div>
+        <div>
+            <h2>Ingredient List</h2>
+            <textarea id="ingredient-list" rows="8" placeholder="Enter the ingredient list here..."></textarea>
+        </div>
+        <div>
+            <h2>Recipe Instructions</h2>
+            <textarea id="recipe-text" rows="8" placeholder="Enter the recipe instructions here..."></textarea>
+        </div>
+        <p id="warning-message" class="warning" style="display:none;"></p>
+        <div class="button-container">
+            <button onclick="generateAndDownloadHTML()">Generate and Download HTML</button>
+            <button onclick="generateAndDownloadJSON()">Generate and Download JSON</button>
+            <button onclick="appendToMemory()">Save to Memory</button>
+            <button onclick="printMemoryJSON()">Print JSON</button>
+            <button onclick="sortMemoryRecipes()">Sort</button>
+        </div>
+    </div>
+
+    <script>
+        let memoryRecipes = [];
+        let loaded = false;
+        const GITHUB_URL = "https://raw.githubusercontent.com/DylanSellers/Cookin/main/all_recipes.JSON";
+
+        async function loadInitialMemory() {
+            if (!loaded) {
+                try {
+                    const res = await fetch(`${GITHUB_URL}?v=${Date.now()}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            memoryRecipes = data;
+                            populateBookOptions();
+                        } else {
+                            console.error("Fetched data is not an array:", data);
+                        }
+                    } else {
+                        console.warn("Fetch failed:", res.status);
+                    }
+                } catch (e) {
+                    console.warn("Could not load from GitHub. Starting with empty memory.");
+                    console.error(e);
+                } finally {
+                    loaded = true;
+                }
+            }
+        }
+
+        function populateBookOptions() {
+            const bookSelect = document.getElementById("book-title");
+            const uniqueBooks = [...new Set(memoryRecipes.map(r => r.bookTitle).filter(Boolean))].sort();
+            bookSelect.innerHTML = uniqueBooks.map(b => `<option value="${b}">${b}</option>`).join("");
+            populateChapterOptions();
+        }
+
+        function populateChapterOptions() {
+            const book = document.getElementById("book-title").value;
+            const chapterSelect = document.getElementById("chapter-name");
+            const filteredChapters = memoryRecipes
+                .filter(r => r.bookTitle === book)
+                .map(r => r.chapterName)
+                .filter(Boolean);
+            const uniqueChapters = [...new Set(filteredChapters)].sort();
+            chapterSelect.innerHTML = uniqueChapters.map(c => `<option value="${c}">${c}</option>`).join("");
+        }
+
+        function clearDropdown(selectId) {
+            document.getElementById(selectId).selectedIndex = -1;
+            if (selectId === 'book-title') {
+              document.getElementById("chapter-name").innerHTML = "";
+            }
+        }
+
+        function getRecipeInput() {
+            return {
+                type: "recipe",
+                bookTitle: document.getElementById("new-book-title").value || document.getElementById("book-title").value,
+                chapterName: document.getElementById("new-chapter-name").value || document.getElementById("chapter-name").value,
+                recipeName: document.getElementById("recipe-name").value,
+                recipeDescription: document.getElementById("recipe-description").value,
+                servingSize: document.getElementById("serving-size").value,
+                ingredientList: document.getElementById("ingredient-list").value,
+                recipeText: document.getElementById("recipe-text").value
+            };
+        }
+
+        function clearInputs() {
+            ["new-book-title", "book-title", "new-chapter-name", "chapter-name", "recipe-name", "recipe-description", "serving-size", "ingredient-list", "recipe-text"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = "";
+                    if (el.tagName === "SELECT") el.selectedIndex = -1;
+                }
+            });
+        }
+
+        async function appendToMemory() {
+            await loadInitialMemory();
+            const newRecipe = getRecipeInput();
+            const exists = memoryRecipes.some(r => r.recipeName === newRecipe.recipeName && r.bookTitle === newRecipe.bookTitle);
+            const warning = document.getElementById("warning-message");
+
+            if (exists) {
+                warning.textContent = "A recipe with that name already exists in this book.";
+                warning.style.display = "block";
+                return;
+            } else {
+                warning.style.display = "none";
+            }
+
+            memoryRecipes.push(newRecipe);
+            alert("Recipe saved in memory.");
+            clearInputs();
+            populateBookOptions();
+        }
+
+        async function printMemoryJSON() {
+            await loadInitialMemory();
+            if (memoryRecipes.length === 0) {
+                alert("No recipes saved in memory.");
+                return;
+            }
+            const blob = new Blob([JSON.stringify(memoryRecipes, null, 4)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `all_recipes.json`;
+            link.click();
+        }
+
+        function sortMemoryRecipes() {
+            memoryRecipes.sort((a, b) => {
+                return a.bookTitle.localeCompare(b.bookTitle) ||
+                       a.chapterName.localeCompare(b.chapterName) ||
+                       a.recipeName.localeCompare(b.recipeName);
+            });
+            alert("Recipes sorted by book, chapter, and name.");
+        }
+
+        function generateAndDownloadHTML() {
+            const { recipeName, recipeDescription, servingSize, ingredientList, recipeText } = getRecipeInput();
+
+            let htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${recipeName}</title>
+    <style>
+        body {
+            font-family: Times New Roman, Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 26px;
+        }
+
+        p {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>${recipeName}</h1>
+    <hr>
+    ${servingSize ? `<p style="text-align: right;">Serves: ${servingSize}</p>` : ""}
+    ${recipeDescription ? `<p style="font-style: italic;">${recipeDescription.replace(/\n/g, "<br>")}</p>` : ""}
+    ${ingredientList ? `<p style="font-weight: bold; margin: 15px;">${ingredientList.replace(/\n/g, "<br>")}</p>` : ""}
+    ${recipeText ? `<p>${recipeText.replace(/\n/g, "<br>")}</p>` : ""}
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: "text/html" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${recipeName.replace(/\s+/g, '_')}.html`;
+            link.click();
+        }
+
+        function generateAndDownloadJSON() {
+            const recipe = getRecipeInput();
+            const blob = new Blob([JSON.stringify(recipe, null, 4)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${recipe.recipeName.replace(/\s+/g, '_')}.json`;
+            link.click();
+        }
+    </script>
+</body>
+</html>
